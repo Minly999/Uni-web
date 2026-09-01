@@ -1,16 +1,53 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Погодний дашборд</title>
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
-    <!-- Шапка з назвою застосунку та полем пошуку міста -->
-    <!-- Блок поточної погоди (температура, опис, іконка) -->
-    <!-- Блок прогнозу на кілька днів (список карток) -->
-    <!-- Підвал із джерелом даних -->
-    <script src="js/app.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Погодний дашборд</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Погодний дашборд</h1>
+    <nav>
+      <a href="#current">Поточна погода</a>
+      <a href="#forecast">Прогноз</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="current">
+      <h2>Поточна погода</h2>
+      <img src="assets/img/sunny.svg" alt="Сонячно, без опадів">
+      <p>+21&deg;C, ясно</p>
+    </section>
+
+    <section id="forecast">
+      <h2>Прогноз на тиждень</h2>
+      <article>
+        <h3>Вівторок</h3>
+        <p>+18&deg;C, хмарно</p>
+      </article>
+      <article>
+        <h3>Середа</h3>
+        <p>+16&deg;C, дощ</p>
+      </article>
+      <article>
+        <h3>Четвер</h3>
+        <p>+20&deg;C, малохмарно</p>
+      </article>
+    </section>
+  </main>
+
+  <aside>
+    <h2>Порада дня</h2>
+    <p>Сьогодні сонячно та тепло, парасолька не знадобиться.</p>
+  </aside>
+
+  <footer>
+    <p>Дані надані навчальним сервісом погоди &copy; 2026</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
 </html>
