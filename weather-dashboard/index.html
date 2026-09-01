@@ -8,51 +8,79 @@
 </head>
 <body>
 
-  <header>
+  <header class="site-header">
     <h1>Погодний дашборд</h1>
     <nav aria-label="Основна навігація">
       <a href="#current">Поточна погода</a>
       <a href="#forecast">Прогноз</a>
-      <a href="#advice">Поради</a>
+      <a href="#advice">Що вдягнути</a>
     </nav>
   </header>
 
   <main>
-    <section id="current" class="current-weather">
-      <h2>Поточна погода</h2>
-      <article class="card">
-        <h3>Київ</h3>
-        <span class="temp">+21°C</span>
-        <p>Сонячно, ясно, без опадів</p>
-      </article>
-    </section>
+    <div class="top-row">
+      <section id="current" class="current-weather">
+        <h2>Поточна погода</h2>
+        <article class="card">
+          <h3>Київ</h3>
+          <span class="temp">+21°C</span>
+          <p>Сонячно, ясно, без опадів</p>
+        </article>
+      </section>
+
+      <aside id="advice">
+        <h2>Що вдягнути</h2>
+        <p>Сьогодні сонячно та тепло (+21°C). Одягайте легкий одяг, сонцезахисні окуляри та не забудьте пляшку води. Парасолька сьогодні не знадобиться.</p>
+      </aside>
+    </div>
 
     <section id="forecast">
-      <h2>Прогноз на тиждень</h2>
+      <h2>Прогноз на 7 днів</h2>
       
-      <article class="card">
-        <h3>Вівторок</h3>
-        <span class="temp">+18°C</span>
-        <p>Хмарно з проясненнями</p>
-      </article>
+      <div class="cards">
+        <article class="card">
+          <h3>Пн</h3>
+          <span class="temp">+19°C</span>
+          <p>Ясно</p>
+        </article>
 
-      <article class="card">
-        <h3>Середа</h3>
-        <span class="temp">+16°C</span>
-        <p>Короткочасний дощ</p>
-      </article>
+        <article class="card">
+          <h3>Вт</h3>
+          <span class="temp">+18°C</span>
+          <p>Хмарно</p>
+        </article>
 
-      <article class="card">
-        <h3>Четвер</h3>
-        <span class="temp">+20°C</span>
-        <p>Малохмарно, без опадів</p>
-      </article>
+        <article class="card">
+          <h3>Ср</h3>
+          <span class="temp">+16°C</span>
+          <p>Дощ</p>
+        </article>
+
+        <article class="card">
+          <h3>Чт</h3>
+          <span class="temp">+20°C</span>
+          <p>Сонячно</p>
+        </article>
+
+        <article class="card">
+          <h3>Пт</h3>
+          <span class="temp">+22°C</span>
+          <p>Ясно</p>
+        </article>
+
+        <article class="card">
+          <h3>Сб</h3>
+          <span class="temp">+24°C</span>
+          <p>Тепло</p>
+        </article>
+
+        <article class="card">
+          <h3>Нд</h3>
+          <span class="temp">+23°C</span>
+          <p>Мінлива хмарність</p>
+        </article>
+      </div>
     </section>
-
-    <aside id="advice">
-      <h2>Що вдягнути</h2>
-      <p>Сьогодні сонячно та тепло (+21°C). Одягайте легкий одяг, сонцезахисні окуляри та не забудьте взяти воду. Парасолька не знадобиться.</p>
-    </aside>
   </main>
 
   <footer>
