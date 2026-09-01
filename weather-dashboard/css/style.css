@@ -61,11 +61,24 @@ section {
   margin-bottom: 24px;
 }
 
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
 section h2 {
   font-size: 1.35rem;
   color: #123c69;
-  margin-top: 0;
-  margin-bottom: 12px;
+  margin: 0;
+}
+
+.avg-temp {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0369a1;
 }
 
 .top-row {
@@ -83,6 +96,25 @@ section h2 {
   border: 1px solid #e2e8f0;
 }
 
+.card.cold {
+  border-color: #38bdf8;
+  background-color: #f0f9ff;
+}
+
+.card--current {
+  background-color: #1e4a7a;
+  color: #ffffff;
+  border: none;
+}
+
+.card.card--current h3 {
+  color: #ffffff;
+}
+
+.card.card--current .desc {
+  color: #e2e8f0;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -93,20 +125,6 @@ section h2 {
   margin: 0 0 6px 0;
   font-size: 1.15rem;
   color: #123c69;
-}
-
-.card--current {
-  background-color: #1e4a7a;
-  color: #ffffff;
-  border: none;
-}
-
-.card--current h3 {
-  color: #ffffff;
-}
-
-.card--current .desc {
-  color: #e2e8f0;
 }
 
 .weather-icon {
@@ -138,12 +156,9 @@ section h2 {
   color: #fdba74;
 }
 
-.temp--cool {
+.temp--cool,
+.card.cold .temp {
   color: #0284c7;
-}
-
-.card--current .temp--cool {
-  color: #7dd3fc;
 }
 
 .cards {
@@ -189,6 +204,12 @@ footer {
 
   .site-header h1 {
     font-size: 2rem;
+  }
+
+  .section-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
   }
 
   main {
