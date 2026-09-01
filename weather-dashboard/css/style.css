@@ -18,7 +18,7 @@ body {
 }
 
 .site-header {
-  background: linear-gradient(135deg, #0d47a1, #1976d2, #42a5f5);
+  background: linear-gradient(135deg, #123c69, #1e4a7a, #2e5a8c);
   padding: 20px 16px;
   color: #ffffff;
   display: flex;
@@ -41,7 +41,7 @@ body {
 }
 
 .site-header nav a {
-  color: #e3f2fd;
+  color: #f0f7ff;
   text-decoration: none;
   font-weight: 500;
   font-size: 0.95rem;
@@ -63,7 +63,7 @@ section {
 
 section h2 {
   font-size: 1.35rem;
-  color: #0d47a1;
+  color: #123c69;
   margin-top: 0;
   margin-bottom: 12px;
 }
@@ -83,24 +83,67 @@ section h2 {
   border: 1px solid #e2e8f0;
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .card h3 {
   margin: 0 0 6px 0;
   font-size: 1.15rem;
-  color: #1e3a8a;
+  color: #123c69;
 }
 
-.card p {
+.card--current {
+  background-color: #1e4a7a;
+  color: #ffffff;
+  border: none;
+}
+
+.card--current h3 {
+  color: #ffffff;
+}
+
+.card--current .desc {
+  color: #e2e8f0;
+}
+
+.weather-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.desc {
   margin: 0;
   color: #475569;
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 
 .temp {
   display: block;
-  font-size: 1.75rem;
+  font-size: 36px;
   font-weight: 700;
-  color: #0284c7;
+  line-height: 1.1;
   margin: 4px 0 6px 0;
+}
+
+.temp--warm {
+  color: #ea580c;
+}
+
+.card--current .temp--warm {
+  color: #fdba74;
+}
+
+.temp--cool {
+  color: #0284c7;
+}
+
+.card--current .temp--cool {
+  color: #7dd3fc;
 }
 
 .cards {
@@ -120,11 +163,10 @@ aside h2 {
   margin-top: 0;
   margin-bottom: 8px;
   font-size: 1.25rem;
-  color: #0369a1;
+  color: #123c69;
 }
 
-aside p {
-  margin: 0;
+aside .desc {
   color: #0f172a;
 }
 
@@ -192,6 +234,6 @@ footer {
   }
 
   .cards .temp {
-    font-size: 1.5rem;
+    font-size: 32px;
   }
 }
