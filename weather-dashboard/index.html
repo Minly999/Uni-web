@@ -15,6 +15,7 @@
     <nav aria-label="Основна навігація">
       <a href="#current">Поточна погода</a>
       <a href="#forecast">Прогноз</a>
+      <a href="#add-forecast">Додати день</a>
       <a href="#advice">Що вдягнути</a>
     </nav>
   </header>
@@ -42,8 +43,13 @@
     <section id="forecast">
       <div class="section-header">
         <h2>Прогноз на 7 днів</h2>
-        <p id="avg-temp" class="avg-temp">Середня температура: обчислення...</p>
+        <div class="forecast-controls">
+          <p id="avg-temp" class="avg-temp">Середня температура: обчислення...</p>
+          <button type="button" id="warmest-btn" class="btn btn--secondary">Найтепліший день</button>
+        </div>
       </div>
+
+      <p id="warmest-result" class="warmest-result" aria-live="polite"></p>
       
       <div class="cards">
         <article class="card placeholder-card">
@@ -51,6 +57,30 @@
           <p class="desc">Очікування даних</p>
         </article>
       </div>
+    </section>
+
+    <section id="add-forecast" class="form-section">
+      <h2>Додати день до прогнозу</h2>
+      <form id="weather-form" class="weather-form" novalidate>
+        <div class="form-group">
+          <label for="day-input">День тижня</label>
+          <input type="text" id="day-input" name="day" placeholder="Наприклад, Пн або 12 травня" required>
+        </div>
+
+        <div class="form-group">
+          <label for="temp-input">Температура (°C)</label>
+          <input type="number" id="temp-input" name="tempC" placeholder="-50 до 50" min="-50" max="50" required>
+        </div>
+
+        <div class="form-group">
+          <label for="desc-input">Опис погоди</label>
+          <input type="text" id="desc-input" name="description" placeholder="Сонячно, Дощ, Сніг тощо">
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn--primary">Додати до прогнозу</button>
+        </div>
+      </form>
     </section>
   </main>
 
