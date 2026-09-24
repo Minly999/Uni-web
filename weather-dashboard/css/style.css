@@ -361,3 +361,28 @@ footer {
     font-size: 32px;
   }
 }
+
+.current-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.weather-error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #f87171;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0 0 12px 0;
+}
+
+.weather-time {
+  display: block;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  margin-top: 8px;
+}

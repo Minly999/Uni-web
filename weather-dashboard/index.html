@@ -23,14 +23,21 @@
   <main>
     <div class="top-row">
       <section id="current" class="current-weather">
-        <h2>Поточна погода</h2>
+        <div class="current-header">
+          <h2>Поточна погода</h2>
+          <button type="button" id="refresh-weather-btn" class="btn btn--secondary">Оновити</button>
+        </div>
+
+        <p id="weather-error" class="weather-error" hidden></p>
+
         <article class="card card--current">
           <div class="card-header">
             <h3>Київ</h3>
-            <span class="weather-icon" aria-hidden="true">☀️</span>
+            <span class="weather-icon" id="current-icon" aria-hidden="true">☀️</span>
           </div>
-          <span class="temp temp--warm">+21°C</span>
-          <p class="desc">Сонячно, ясно, без опадів</p>
+          <span class="temp temp--warm" id="current-temp">+21°C</span>
+          <p class="desc" id="current-desc">Сонячно, ясно, без опадів</p>
+          <time class="weather-time" id="current-time"></time>
         </article>
       </section>
 
