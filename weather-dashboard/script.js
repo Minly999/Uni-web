@@ -1,4 +1,4 @@
-// URL сервісу Open-Meteo
+// Фреймворк: Vue 3 обрано через нативну роботу з DOM-шаблонами без потреби збірки JSX у браузері
 const API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=50.45&longitude=30.52&current=temperature_2m,weather_code&timezone=auto';
 
 // Словник інтерпретації кодів WMO
@@ -29,23 +29,6 @@ const WEATHER_CODES = {
   99: { desc: 'Гроза з сильним градом', icon: '⛈️' }
 };
 
-// Вихідний масив об'єктів прогнозу погоди
-const forecastData = [
-  { day: 'Пн', tempC: 19, description: 'Ясно', icon: '☀️' },
-  { day: 'Вт', tempC: 18, description: 'Хмарно', icon: '⛅' },
-  { day: 'Ср', tempC: 16, description: 'Дощ', icon: '🌧️' },
-  { day: 'Чт', tempC: 20, description: 'Сонячно', icon: '🌤️' },
-  { day: 'Пт', tempC: -2, description: 'Заморозки', icon: '❄️' },
-  { day: 'Сб', tempC: 24, description: 'Тепло', icon: '🔥' },
-  { day: 'Нд', tempC: -5, description: 'Сніг', icon: '🌨️' }
-];
-
-// DOM-елементи відображення даних
-const forecastContainer = document.querySelector('#forecast .cards');
-const avgTempElement = document.querySelector('#avg-temp');
-const warmestBtn = document.querySelector('#warmest-btn');
-const warmestResult = document.querySelector('#warmest-result');
-
 // Елементи блоку поточної погоди
 const refreshWeatherBtn = document.querySelector('#refresh-weather-btn');
 const weatherError = document.querySelector('#weather-error');
@@ -54,18 +37,6 @@ const currentDesc = document.querySelector('#current-desc');
 const currentIcon = document.querySelector('#current-icon');
 const currentTime = document.querySelector('#current-time');
 const adviceDesc = document.querySelector('#advice .desc');
-
-// DOM-елементи форми та полів введення
-const weatherForm = document.querySelector('#weather-form');
-const dayInput = document.querySelector('#day-input');
-const tempInput = document.querySelector('#temp-input');
-const descInput = document.querySelector('#desc-input');
-
-// Видалення статичного плейсхолдера
-const placeholder = document.querySelector('.placeholder-card');
-if (placeholder) {
-  placeholder.remove();
-}
 
 // Керування станом завантаження
 function showLoading(isLoading) {
@@ -135,7 +106,7 @@ async function loadCurrentWeather() {
   showError(null);
 
   try {
-    const response = await fetch(API_URL);
+    const response = await fetch(API_URL, { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error(`HTTP помилка: ${response.status}`);
@@ -165,52 +136,112 @@ function resolveWeatherIcon(description, tempC) {
   return '🌤️';
 }
 
-/**
- * Рендерить картки прогнозу погоди в DOM та розраховує середню температуру
- */
+// Компонент картки прогнозу погоди
+const WeatherCard = {
+  name: 'WeatherCard',
+  props: {
+    day: { type: String, required: true },
+    tempC: { type: Number, required: true },
+    description: { type: String, default: '' },
+    icon: { type: String, default: '' }
+  },
+  data() {
+    return {
+      showFahrenheit: false
+    };
+  },
+  computed: {
+    tempF() {
+      return Math.round((this.tempC * 9) / 5 + 32);
+    },
+    weatherIcon() {
+      if (this.icon) return this.icon;
+      return resolveWeatherIcon(this.description, this.tempC);
+    }
+  },
+  methods: {
+    toggleFahrenheit() {
+      this.showFahrenheit = !this.showFahrenheit;
+    }
+  },
+  template: `
+    <article
+      class="card"
+      :class="{ cold: tempC < 0 }"
+      :data-day="day"
+      :data-temp="tempC"
+      @click="toggleFahrenheit"
+      style="cursor: pointer;"
+    >
+      <h3>{{ day }}</h3>
+      <span class="weather-icon" aria-hidden="true">{{ weatherIcon }}</span>
+      <span class="temp" :class="tempC >= 19 ? 'temp--warm' : 'temp--cool'">
+        {{ tempC > 0 ? '+' : '' }}{{ tempC }}°C
+        <span v-if="showFahrenheit" style="display: block; font-size: 0.6em; color: #64748b;">
+          ({{ tempF > 0 ? '+' : '' }}{{ tempF }}°F)
+        </span>
+      </span>
+      <p class="desc">{{ description || 'Без опадів' }}</p>
+    </article>
+  `
+};
+
+// Ініціалізація додатку Vue для секції прогнозу
+const forecastApp = Vue.createApp({
+  components: {
+    WeatherCard
+  },
+  data() {
+    return {
+      forecastData: [
+        { day: 'Пн', tempC: 19, description: 'Ясно', icon: '☀️' },
+        { day: 'Вт', tempC: 18, description: 'Хмарно', icon: '⛅' },
+        { day: 'Ср', tempC: 16, description: 'Дощ', icon: '🌧️' },
+        { day: 'Чт', tempC: 20, description: 'Сонячно', icon: '🌤️' },
+        { day: 'Пт', tempC: -2, description: 'Заморозки', icon: '❄️' },
+        { day: 'Сб', tempC: 24, description: 'Тепло', icon: '🔥' },
+        { day: 'Нд', tempC: -5, description: 'Сніг', icon: '🌨️' }
+      ],
+      warmestResult: ''
+    };
+  },
+  computed: {
+    avgTempFormatted() {
+      if (!this.forecastData || this.forecastData.length === 0) return 'обчислення...';
+      const total = this.forecastData.reduce((sum, item) => sum + item.tempC, 0);
+      const avg = (total / this.forecastData.length).toFixed(1);
+      const sign = Number(avg) > 0 ? '+' : '';
+      return `${sign}${avg}°C`;
+    }
+  },
+  methods: {
+    showWarmest() {
+      if (!this.forecastData || this.forecastData.length === 0) {
+        this.warmestResult = 'Дані прогнозу відсутні';
+        return;
+      }
+      const warmest = this.forecastData.reduce((prev, current) => {
+        return current.tempC > prev.tempC ? current : prev;
+      });
+      const sign = warmest.tempC > 0 ? '+' : '';
+      this.warmestResult = `Найтепліший день: ${warmest.day} (${sign}${warmest.tempC}°C, ${warmest.description})`;
+    }
+  }
+}).mount('#forecast');
+
+// Ручний рендер замінено декларативним рендером компонента WeatherCard
+/*
 function renderForecast(days) {
   forecastContainer.innerHTML = '';
-  let totalTemp = 0;
-
-  days.forEach(item => {
-    totalTemp += item.tempC;
-
-    const card = document.createElement('article');
-    card.classList.add('card');
-    card.setAttribute('data-day', item.day);
-    card.dataset.temp = item.tempC;
-
-    if (item.tempC < 0) {
-      card.classList.add('cold');
-    }
-
-    const title = document.createElement('h3');
-    title.textContent = item.day;
-
-    const icon = document.createElement('span');
-    icon.classList.add('weather-icon');
-    icon.setAttribute('aria-hidden', 'true');
-    icon.textContent = item.icon || resolveWeatherIcon(item.description, item.tempC);
-
-    const temp = document.createElement('span');
-    temp.classList.add('temp');
-    temp.classList.add(item.tempC >= 19 ? 'temp--warm' : 'temp--cool');
-    temp.textContent = `${item.tempC > 0 ? '+' : ''}${item.tempC}°C`;
-
-    const desc = document.createElement('p');
-    desc.classList.add('desc');
-    desc.textContent = item.description || 'Без опадів';
-
-    card.append(title, icon, temp, desc);
-    forecastContainer.append(card);
-  });
-
-  if (avgTempElement && days.length > 0) {
-    const average = (totalTemp / days.length).toFixed(1);
-    const sign = Number(average) > 0 ? '+' : '';
-    avgTempElement.textContent = `Середня температура: ${sign}${average}°C`;
-  }
+  ...
 }
+*/
+
+// DOM-елементи форми та полів введення
+const weatherForm = document.querySelector('#weather-form');
+const dayInput = document.querySelector('#day-input');
+const tempInput = document.querySelector('#temp-input');
+const descInput = document.querySelector('#desc-input');
 
 // Клієнтська валідація поля температури на подію input
 tempInput.addEventListener('input', () => {
@@ -248,25 +279,9 @@ weatherForm.addEventListener('submit', event => {
     icon: resolveWeatherIcon(descValue, tempValue)
   };
 
-  forecastData.push(newForecastItem);
-  renderForecast(forecastData);
+  forecastApp.forecastData.push(newForecastItem);
   weatherForm.reset();
   tempInput.setCustomValidity('');
-});
-
-// Обробка другої події варіанта: клік по кнопці визначення найтеплішого дня
-warmestBtn.addEventListener('click', () => {
-  if (forecastData.length === 0) {
-    warmestResult.textContent = 'Дані прогнозу відсутні';
-    return;
-  }
-
-  const warmest = forecastData.reduce((prev, current) => {
-    return current.tempC > prev.tempC ? current : prev;
-  });
-
-  const sign = warmest.tempC > 0 ? '+' : '';
-  warmestResult.textContent = `Найтепліший день: ${warmest.day} (${sign}${warmest.tempC}°C, ${warmest.description})`;
 });
 
 // Слухач кнопки оновлення
@@ -274,6 +289,5 @@ if (refreshWeatherBtn) {
   refreshWeatherBtn.addEventListener('click', loadCurrentWeather);
 }
 
-// Початковий рендер даних під час завантаження сторінки
-renderForecast(forecastData);
+// Завантаження поточної погоди
 loadCurrentWeather();

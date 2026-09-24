@@ -6,6 +6,7 @@
   <title>Погодний дашборд</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="script.js" defer></script>
 </head>
 <body>
@@ -51,18 +52,22 @@
       <div class="section-header">
         <h2>Прогноз на 7 днів</h2>
         <div class="forecast-controls">
-          <p id="avg-temp" class="avg-temp">Середня температура: обчислення...</p>
-          <button type="button" id="warmest-btn" class="btn btn--secondary">Найтепліший день</button>
+          <p id="avg-temp" class="avg-temp">Середня температура: {{ avgTempFormatted }}</p>
+          <button type="button" id="warmest-btn" class="btn btn--secondary" @click="showWarmest">Найтепліший день</button>
         </div>
       </div>
 
-      <p id="warmest-result" class="warmest-result" aria-live="polite"></p>
+      <p id="warmest-result" class="warmest-result" aria-live="polite">{{ warmestResult }}</p>
       
       <div class="cards">
-        <article class="card placeholder-card">
-          <h3>Завантаження...</h3>
-          <p class="desc">Очікування даних</p>
-        </article>
+        <weather-card
+          v-for="item in forecastData"
+          :key="item.day"
+          :day="item.day"
+          :temp-c="item.tempC"
+          :description="item.description"
+          :icon="item.icon"
+        ></weather-card>
       </div>
     </section>
 
