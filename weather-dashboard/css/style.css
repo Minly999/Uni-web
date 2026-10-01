@@ -386,3 +386,34 @@ footer {
   color: #cbd5e1;
   margin-top: 8px;
 }
+
+/* Стилі для збережених міст */
+.saved-cities-section {
+  margin-bottom: 24px;
+}
+
+.card--city {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.card--city .city-coords {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 2px 0 6px 0;
+}
+
+.btn--danger {
+  background-color: #ef4444;
+  color: #ffffff;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  margin-top: 10px;
+  align-self: flex-start;
+}
+
+.btn--danger:hover {
+  background-color: #dc2626;
+}

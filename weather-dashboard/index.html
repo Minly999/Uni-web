@@ -16,6 +16,7 @@
     <nav aria-label="Основна навігація">
       <a href="#current">Поточна погода</a>
       <a href="#forecast">Прогноз</a>
+      <a href="#saved-cities">Збережені міста</a>
       <a href="#add-forecast">Додати день</a>
       <a href="#advice">Що вдягнути</a>
     </nav>
@@ -68,6 +69,41 @@
           :description="item.description"
           :icon="item.icon"
         ></weather-card>
+      </div>
+    </section>
+
+    <!-- Секція збережених міст з IndexedDB -->
+    <section id="saved-cities" class="saved-cities-section">
+      <div class="section-header">
+        <h2>Збережені міста</h2>
+      </div>
+
+      <p id="db-error" class="weather-error" hidden></p>
+
+      <div id="cities-container" class="cards"></div>
+
+      <div class="form-section" style="margin-top: 16px;">
+        <h3>Додати місто до списку</h3>
+        <form id="city-form" class="weather-form" novalidate>
+          <div class="form-group">
+            <label for="city-name-input">Назва міста</label>
+            <input type="text" id="city-name-input" name="cityName" placeholder="Наприклад, Львів" required>
+          </div>
+
+          <div class="form-group">
+            <label for="city-lat-input">Широта (Latitude)</label>
+            <input type="number" id="city-lat-input" name="lat" step="0.0001" min="-90" max="90" placeholder="49.8397" required>
+          </div>
+
+          <div class="form-group">
+            <label for="city-lon-input">Довгота (Longitude)</label>
+            <input type="number" id="city-lon-input" name="lon" step="0.0001" min="-180" max="180" placeholder="24.0297" required>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Зберегти місто</button>
+          </div>
+        </form>
       </div>
     </section>
 
