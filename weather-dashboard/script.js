@@ -4,7 +4,7 @@ const API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=50.45&longitude
 // Словник інтерпретації кодів WMO
 const WEATHER_CODES = {
   0: { desc: 'Ясно', icon: '☀️' },
-  1: { desc: 'Переважно ясно', icon: '🌤️️' },
+  1: { desc: 'Переважно ясно', icon: '🌤️' },
   2: { desc: 'Мінлива хмарність', icon: '⛅' },
   3: { desc: 'Похмуро', icon: '☁️' },
   45: { desc: 'Туман', icon: '🌫️' },
@@ -17,20 +17,21 @@ const WEATHER_CODES = {
   65: { desc: 'Сильний дощ', icon: '🌧️' },
   71: { desc: 'Слабкий снігопад', icon: '🌨️' },
   73: { desc: 'Помірний снігопад', icon: '🌨️' },
-  75: { desc: 'Сильний снігопад', icon: '❄️️' },
+  75: { desc: 'Сильний снігопад', icon: '❄️' },
   77: { desc: 'Снігові зерна', icon: '❄️' },
   80: { desc: 'Короткочасний дощ', icon: '🌦️' },
   81: { desc: 'Злива', icon: '🌧️' },
   82: { desc: 'Сильна злива', icon: '⛈️' },
   85: { desc: 'Снігопад із проясненнями', icon: '🌨️' },
   86: { desc: 'Сильний хуртовинний сніг', icon: '❄️' },
-  95: { desc: 'Гроза', icon: '⛈️' },
+  95: { desc: 'Гроза', icon: '⛈️️' },
   96: { desc: 'Гроза з невеликим градом', icon: '⛈️' },
   99: { desc: 'Гроза з сильним градом', icon: '⛈️' }
 };
 
 // Елементи блоку поточної погоди
 const refreshWeatherBtn = document.querySelector('#refresh-weather-btn');
+const toggleAnimBtn = document.querySelector('#toggle-anim-btn');
 const weatherError = document.querySelector('#weather-error');
 const currentTemp = document.querySelector('#current-temp');
 const currentDesc = document.querySelector('#current-desc');
@@ -38,7 +39,200 @@ const currentIcon = document.querySelector('#current-icon');
 const currentTime = document.querySelector('#current-time');
 const adviceDesc = document.querySelector('#advice .desc');
 
-// Керування станом завантаження
+// ========================================================
+// Canvas API: Анімована іконка погоди
+// ========================================================
+
+const canvas = document.querySelector('#weather-canvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+
+let animationFrameId = null;
+let isAnimationRunning = true;
+let currentWeatherCode = 0;
+
+let sunAngle = 0;
+let cloudFloatOffset = 0;
+let cloudFloatDirection = 1;
+
+// Генерація крапель дощу для анімації опадів
+const rainDrops = Array.from({ length: 18 }, () => ({
+  x: Math.random() * 60 + 10,
+  y: Math.random() * 40 + 35,
+  length: Math.random() * 6 + 6,
+  speed: Math.random() * 2 + 2.5
+}));
+
+// Генерація сніжинок для анімації зимової погоди
+const snowFlakes = Array.from({ length: 15 }, () => ({
+  x: Math.random() * 60 + 10,
+  y: Math.random() * 40 + 35,
+  radius: Math.random() * 1.5 + 1.2,
+  speed: Math.random() * 0.8 + 0.6,
+  drift: Math.random() * 0.4 - 0.2
+}));
+
+// Малювання форми хмари
+function drawCloudShape(context, x, y, fillColor = '#94a3b8') {
+  context.fillStyle = fillColor;
+  context.beginPath();
+  context.arc(x, y, 14, Math.PI * 0.5, Math.PI * 1.5);
+  context.arc(x + 14, y - 10, 16, Math.PI * 1, Math.PI * 1.9);
+  context.arc(x + 32, y - 6, 13, Math.PI * 1.2, Math.PI * 2.1);
+  context.arc(x + 40, y, 12, Math.PI * 1.5, Math.PI * 0.5);
+  context.closePath();
+  context.fill();
+}
+
+// Рендеринг сонячної погоди (обертання сонця з променями)
+function renderSunAnimation() {
+  if (!ctx) return;
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  ctx.rotate(sunAngle);
+
+  // Промені сонця
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  const numRays = 8;
+  for (let i = 0; i < numRays; i++) {
+    const angle = (i * Math.PI * 2) / numRays;
+    const x1 = Math.cos(angle) * 22;
+    const y1 = Math.sin(angle) * 22;
+    const x2 = Math.cos(angle) * 31;
+    const y2 = Math.sin(angle) * 31;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // Центральне коло сонця
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath();
+  ctx.arc(0, 0, 17, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+  sunAngle += 0.015;
+}
+
+// Рендеринг похмурої погоди / туману
+function renderCloudAnimation() {
+  if (!ctx) return;
+  cloudFloatOffset += 0.03 * cloudFloatDirection;
+  if (Math.abs(cloudFloatOffset) > 2) {
+    cloudFloatDirection *= -1;
+  }
+
+  drawCloudShape(ctx, 16, 42 + cloudFloatOffset, '#94a3b8');
+  drawCloudShape(ctx, 22, 38 + cloudFloatOffset, '#cbd5e1');
+}
+
+// Рендеринг дощу
+function renderRainAnimation() {
+  if (!ctx) return;
+  drawCloudShape(ctx, 18, 30, '#64748b');
+
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+
+  rainDrops.forEach(drop => {
+    ctx.beginPath();
+    ctx.moveTo(drop.x, drop.y);
+    ctx.lineTo(drop.x - 1.5, drop.y + drop.length);
+    ctx.stroke();
+
+    drop.y += drop.speed;
+    drop.x -= 0.3;
+
+    if (drop.y > canvas.height) {
+      drop.y = 35;
+      drop.x = Math.random() * 55 + 12;
+    }
+  });
+}
+
+// Рендеринг снігу
+function renderSnowAnimation() {
+  if (!ctx) return;
+  drawCloudShape(ctx, 18, 30, '#94a3b8');
+
+  ctx.fillStyle = '#e2e8f0';
+
+  snowFlakes.forEach(flake => {
+    ctx.beginPath();
+    ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    flake.y += flake.speed;
+    flake.x += flake.drift;
+
+    if (flake.y > canvas.height) {
+      flake.y = 35;
+      flake.x = Math.random() * 55 + 12;
+    }
+  });
+}
+
+// Головний кадр анімаційного циклу requestAnimationFrame
+function animateWeatherIcon() {
+  if (!ctx || !isAnimationRunning) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const code = currentWeatherCode;
+
+  // Вибір анімації на основі WMO коду
+  if (code === 0 || code === 1) {
+    renderSunAnimation();
+  } else if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82) || code >= 95) {
+    renderRainAnimation();
+  } else if ((code >= 71 && code <= 77) || code === 85 || code === 86) {
+    renderSnowAnimation();
+  } else {
+    renderCloudAnimation();
+  }
+
+  animationFrameId = requestAnimationFrame(animateWeatherIcon);
+}
+
+// Керування стартом/зупинкою анімації
+function startWeatherAnimation() {
+  if (!isAnimationRunning) {
+    isAnimationRunning = true;
+    if (toggleAnimBtn) toggleAnimBtn.textContent = 'Пауза анімації';
+    animateWeatherIcon();
+  }
+}
+
+function stopWeatherAnimation() {
+  isAnimationRunning = false;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  if (toggleAnimBtn) toggleAnimBtn.textContent = 'Старт анімації';
+}
+
+if (toggleAnimBtn) {
+  toggleAnimBtn.addEventListener('click', () => {
+    if (isAnimationRunning) {
+      stopWeatherAnimation();
+    } else {
+      startWeatherAnimation();
+    }
+  });
+}
+
+// ========================================================
+// Поточна погода та обробка API
+// ========================================================
+
 function showLoading(isLoading) {
   if (!refreshWeatherBtn) return;
   if (isLoading) {
@@ -50,7 +244,6 @@ function showLoading(isLoading) {
   }
 }
 
-// Виведення повідомлення про помилку
 function showError(message) {
   if (!weatherError) return;
   if (message) {
@@ -62,11 +255,13 @@ function showError(message) {
   }
 }
 
-// Відображення поточної погоди в картці
 function renderCurrentWeather(current) {
   const codeInfo = WEATHER_CODES[current.weather_code] || { desc: 'Невідомо', icon: '🌤️' };
   const tempVal = Math.round(current.temperature_2m);
   const sign = tempVal > 0 ? '+' : '';
+
+  // Оновлюємо код погоди для динамічної Canvas-анімації
+  currentWeatherCode = current.weather_code;
 
   if (currentTemp) {
     currentTemp.textContent = `${sign}${tempVal}°C`;
@@ -100,7 +295,6 @@ function renderCurrentWeather(current) {
   }
 }
 
-// Асинхронне отримання даних погоди для Києва
 async function loadCurrentWeather() {
   showLoading(true);
   showError(null);
@@ -122,9 +316,6 @@ async function loadCurrentWeather() {
   }
 }
 
-/**
- * Визначає емодзі-іконку відповідно до опису або температури
- */
 function resolveWeatherIcon(description, tempC) {
   const desc = (description || '').toLowerCase();
   if (desc.includes('дощ')) return '🌧️';
@@ -136,7 +327,10 @@ function resolveWeatherIcon(description, tempC) {
   return '🌤️';
 }
 
-// Компонент картки прогнозу погоди
+// ========================================================
+// Vue 3: Компонент карток та реактивний прогноз
+// ========================================================
+
 const WeatherCard = {
   name: 'WeatherCard',
   props: {
@@ -186,7 +380,6 @@ const WeatherCard = {
   `
 };
 
-// Ініціалізація додатку Vue для секції прогнозу
 const forecastApp = Vue.createApp({
   components: {
     WeatherCard
@@ -229,48 +422,52 @@ const forecastApp = Vue.createApp({
   }
 }).mount('#forecast');
 
-// DOM-елементи форми прогнозу
+// Форма додавання дня до прогнозу
 const weatherForm = document.querySelector('#weather-form');
 const dayInput = document.querySelector('#day-input');
 const tempInput = document.querySelector('#temp-input');
 const descInput = document.querySelector('#desc-input');
 
-tempInput.addEventListener('input', () => {
-  const val = tempInput.value.trim();
-  if (val === '') {
+if (tempInput) {
+  tempInput.addEventListener('input', () => {
+    const val = tempInput.value.trim();
+    if (val === '') {
+      tempInput.setCustomValidity('');
+      return;
+    }
+    const num = Number(val);
+    if (num < -50 || num > 50) {
+      tempInput.setCustomValidity('Температура поза реалістичним діапазоном (-50...50°C)');
+    } else {
+      tempInput.setCustomValidity('');
+    }
+  });
+}
+
+if (weatherForm) {
+  weatherForm.addEventListener('submit', event => {
+    event.preventDefault();
+    if (!weatherForm.checkValidity()) {
+      weatherForm.reportValidity();
+      return;
+    }
+
+    const dayValue = dayInput.value.trim();
+    const tempValue = Number(tempInput.value);
+    const descValue = descInput.value.trim() || 'Ясно';
+
+    const newForecastItem = {
+      day: dayValue,
+      tempC: tempValue,
+      description: descValue,
+      icon: resolveWeatherIcon(descValue, tempValue)
+    };
+
+    forecastApp.forecastData.push(newForecastItem);
+    weatherForm.reset();
     tempInput.setCustomValidity('');
-    return;
-  }
-  const num = Number(val);
-  if (num < -50 || num > 50) {
-    tempInput.setCustomValidity('Температура поза реалістичним діапазоном (-50...50°C)');
-  } else {
-    tempInput.setCustomValidity('');
-  }
-});
-
-weatherForm.addEventListener('submit', event => {
-  event.preventDefault();
-  if (!weatherForm.checkValidity()) {
-    weatherForm.reportValidity();
-    return;
-  }
-
-  const dayValue = dayInput.value.trim();
-  const tempValue = Number(tempInput.value);
-  const descValue = descInput.value.trim() || 'Ясно';
-
-  const newForecastItem = {
-    day: dayValue,
-    tempC: tempValue,
-    description: descValue,
-    icon: resolveWeatherIcon(descValue, tempValue)
-  };
-
-  forecastApp.forecastData.push(newForecastItem);
-  weatherForm.reset();
-  tempInput.setCustomValidity('');
-});
+  });
+}
 
 if (refreshWeatherBtn) {
   refreshWeatherBtn.addEventListener('click', loadCurrentWeather);
@@ -284,14 +481,12 @@ const DB_NAME = 'WeatherDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'cities';
 
-// Початкові дані міст для першого запису в localStorage
 const initialCities = [
   { id: 'kyiv', name: 'Київ', lat: 50.45, lon: 30.52, temperature: 21, weatherCode: 0, time: '2026-10-01T12:00' },
   { id: 'lviv', name: 'Львів', lat: 49.84, lon: 24.03, temperature: 18, weatherCode: 2, time: '2026-10-01T12:00' },
   { id: 'odesa', name: 'Одеса', lat: 46.48, lon: 30.73, temperature: 23, weatherCode: 1, time: '2026-10-01T12:00' }
 ];
 
-// Елементи секції збережених міст
 const citiesContainer = document.querySelector('#cities-container');
 const dbError = document.querySelector('#db-error');
 const cityForm = document.querySelector('#city-form');
@@ -299,12 +494,10 @@ const cityNameInput = document.querySelector('#city-name-input');
 const cityLatInput = document.querySelector('#city-lat-input');
 const cityLonInput = document.querySelector('#city-lon-input');
 
-// Синхронне збереження в localStorage
 function saveToLocalStorage(items) {
   localStorage.setItem('saved_cities', JSON.stringify(items));
 }
 
-// Безпечне читання з localStorage
 function loadFromLocalStorage() {
   try {
     const raw = localStorage.getItem('saved_cities');
@@ -315,7 +508,6 @@ function loadFromLocalStorage() {
   }
 }
 
-// Відкриття бази даних IndexedDB з Promise
 function openDB() {
   return new Promise((resolve, reject) => {
     if (!window.indexedDB) {
@@ -337,7 +529,6 @@ function openDB() {
   });
 }
 
-// Додавання або оновлення міста через транзакцію put
 async function saveCity(city) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -348,7 +539,6 @@ async function saveCity(city) {
   });
 }
 
-// Читання всіх міст зі сховища
 async function getAllCities() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -359,7 +549,6 @@ async function getAllCities() {
   });
 }
 
-// Видалення міста за id
 async function deleteCity(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -370,7 +559,6 @@ async function deleteCity(id) {
   });
 }
 
-// Одноразова міграція з localStorage в IndexedDB
 async function migrateFromLocalStorage() {
   const isMigrated = localStorage.getItem('cities_migrated');
   if (isMigrated) return;
@@ -385,7 +573,6 @@ async function migrateFromLocalStorage() {
   localStorage.setItem('cities_migrated', 'true');
 }
 
-// Рендер карток збережених міст
 function renderCitiesList(cities) {
   if (!citiesContainer) return;
   citiesContainer.innerHTML = '';
@@ -432,7 +619,6 @@ function renderCitiesList(cities) {
   });
 }
 
-// Отримання свіжого прогнозу для кожного збереженого міста через API
 async function fetchWeatherForCity(city) {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code&timezone=auto`;
@@ -455,7 +641,6 @@ async function fetchWeatherForCity(city) {
   }
 }
 
-// Оновлення погодних даних для всього списку збережених міст
 async function refreshAllSavedCities() {
   const currentList = await getAllCities();
   for (const city of currentList) {
@@ -465,7 +650,6 @@ async function refreshAllSavedCities() {
   renderCitiesList(freshList);
 }
 
-// Додавання міста через форму
 if (cityForm) {
   cityForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -495,29 +679,23 @@ if (cityForm) {
     const updatedList = await getAllCities();
     renderCitiesList(updatedList);
 
-    // Фонове оновлення погоди для нового міста
     await fetchWeatherForCity(newCity);
     const finalUpdated = await getAllCities();
     renderCitiesList(finalUpdated);
   });
 }
 
-// Ініціалізація сховищ даних та завантаження
 async function initStorageAndCities() {
   try {
-    // 1. Початковий запис у localStorage (для перевірки Кроків 2-4)
     if (!localStorage.getItem('saved_cities')) {
       saveToLocalStorage(initialCities);
     }
 
-    // 2. Одноразова міграція в IndexedDB (Крок 8)
     await migrateFromLocalStorage();
 
-    // 3. Швидкий рендер збережених міст безпосередньо з IndexedDB (Крок 9)
     const cachedCities = await getAllCities();
     renderCitiesList(cachedCities);
 
-    // 4. Отримання актуального прогнозу через API у фоні
     await refreshAllSavedCities();
   } catch (error) {
     console.error('Помилка ініціалізації бази даних:', error);
@@ -528,6 +706,7 @@ async function initStorageAndCities() {
   }
 }
 
-// Запуск застосунку
+// Запуск анімації та завантаження застосунку
+animateWeatherIcon();
 loadCurrentWeather();
 initStorageAndCities();

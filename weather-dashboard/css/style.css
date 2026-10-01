@@ -417,3 +417,16 @@ footer {
 .btn--danger:hover {
   background-color: #dc2626;
 }
+
+/* Керування кнопками у шапці поточної погоди */
+.current-header .header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Стилі для Canvas іконки */
+#weather-canvas {
+  width: 60px;
+  height: 60px;
+  display: block;
+}

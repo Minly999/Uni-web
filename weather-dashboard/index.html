@@ -27,7 +27,10 @@
       <section id="current" class="current-weather">
         <div class="current-header">
           <h2>Поточна погода</h2>
-          <button type="button" id="refresh-weather-btn" class="btn btn--secondary">Оновити</button>
+          <div class="header-actions">
+            <button type="button" id="toggle-anim-btn" class="btn btn--secondary">Пауза анімації</button>
+            <button type="button" id="refresh-weather-btn" class="btn btn--secondary">Оновити</button>
+          </div>
         </div>
 
         <p id="weather-error" class="weather-error" hidden></p>
@@ -35,7 +38,9 @@
         <article class="card card--current">
           <div class="card-header">
             <h3>Київ</h3>
-            <span class="weather-icon" id="current-icon" aria-hidden="true">☀️</span>
+            <!-- Canvas для анімованої іконки погоди -->
+            <canvas id="weather-canvas" width="80" height="80" aria-label="Анімована іконка погоди"></canvas>
+            <span class="weather-icon" id="current-icon" aria-hidden="true" hidden>☀️</span>
           </div>
           <span class="temp temp--warm" id="current-temp">+21°C</span>
           <p class="desc" id="current-desc">Сонячно, ясно, без опадів</p>
