@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Погодний дашборд</title>
+  <title>Погодний дашборд — SPA</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -14,128 +14,13 @@
   <header class="site-header">
     <h1>Погодний дашборд</h1>
     <nav aria-label="Основна навігація">
-      <a href="#current">Поточна погода</a>
-      <a href="#forecast">Прогноз</a>
-      <a href="#saved-cities">Збережені міста</a>
-      <a href="#add-forecast">Додати день</a>
-      <a href="#advice">Що вдягнути</a>
+      <a href="#/" data-link class="nav-link">Поточний прогноз</a>
+      <a href="#/cities" data-link class="nav-link">Збережені міста</a>
     </nav>
   </header>
 
-  <main>
-    <div class="top-row">
-      <section id="current" class="current-weather">
-        <div class="current-header">
-          <h2>Поточна погода</h2>
-          <div class="header-actions">
-            <button type="button" id="toggle-anim-btn" class="btn btn--secondary">Пауза анімації</button>
-            <button type="button" id="refresh-weather-btn" class="btn btn--secondary">Оновити</button>
-          </div>
-        </div>
-
-        <p id="weather-error" class="weather-error" hidden></p>
-
-        <article class="card card--current">
-          <div class="card-header">
-            <h3>Київ</h3>
-            <!-- Canvas для анімованої іконки погоди -->
-            <canvas id="weather-canvas" width="80" height="80" aria-label="Анімована іконка погоди"></canvas>
-            <span class="weather-icon" id="current-icon" aria-hidden="true" hidden>☀️</span>
-          </div>
-          <span class="temp temp--warm" id="current-temp">+21°C</span>
-          <p class="desc" id="current-desc">Сонячно, ясно, без опадів</p>
-          <time class="weather-time" id="current-time"></time>
-        </article>
-      </section>
-
-      <aside id="advice">
-        <h2>Що вдягнути</h2>
-        <p class="desc">Сьогодні сонячно та тепло (+21°C). Одягайте легкий одяг, сонцезахисні окуляри та не забудьте пляшку води. Парасолька сьогодні не знадобиться.</p>
-      </aside>
-    </div>
-
-    <section id="forecast">
-      <div class="section-header">
-        <h2>Прогноз на 7 днів</h2>
-        <div class="forecast-controls">
-          <p id="avg-temp" class="avg-temp">Середня температура: {{ avgTempFormatted }}</p>
-          <button type="button" id="warmest-btn" class="btn btn--secondary" @click="showWarmest">Найтепліший день</button>
-        </div>
-      </div>
-
-      <p id="warmest-result" class="warmest-result" aria-live="polite">{{ warmestResult }}</p>
-      
-      <div class="cards">
-        <weather-card
-          v-for="item in forecastData"
-          :key="item.day"
-          :day="item.day"
-          :temp-c="item.tempC"
-          :description="item.description"
-          :icon="item.icon"
-        ></weather-card>
-      </div>
-    </section>
-
-    <!-- Секція збережених міст з IndexedDB -->
-    <section id="saved-cities" class="saved-cities-section">
-      <div class="section-header">
-        <h2>Збережені міста</h2>
-      </div>
-
-      <p id="db-error" class="weather-error" hidden></p>
-
-      <div id="cities-container" class="cards"></div>
-
-      <div class="form-section" style="margin-top: 16px;">
-        <h3>Додати місто до списку</h3>
-        <form id="city-form" class="weather-form" novalidate>
-          <div class="form-group">
-            <label for="city-name-input">Назва міста</label>
-            <input type="text" id="city-name-input" name="cityName" placeholder="Наприклад, Львів" required>
-          </div>
-
-          <div class="form-group">
-            <label for="city-lat-input">Широта (Latitude)</label>
-            <input type="number" id="city-lat-input" name="lat" step="0.0001" min="-90" max="90" placeholder="49.8397" required>
-          </div>
-
-          <div class="form-group">
-            <label for="city-lon-input">Довгота (Longitude)</label>
-            <input type="number" id="city-lon-input" name="lon" step="0.0001" min="-180" max="180" placeholder="24.0297" required>
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn--primary">Зберегти місто</button>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <section id="add-forecast" class="form-section">
-      <h2>Додати день до прогнозу</h2>
-      <form id="weather-form" class="weather-form" novalidate>
-        <div class="form-group">
-          <label for="day-input">День тижня</label>
-          <input type="text" id="day-input" name="day" placeholder="Наприклад, Пн або 12 травня" required>
-        </div>
-
-        <div class="form-group">
-          <label for="temp-input">Температура (°C)</label>
-          <input type="number" id="temp-input" name="tempC" placeholder="-50 до 50" min="-50" max="50" required>
-        </div>
-
-        <div class="form-group">
-          <label for="desc-input">Опис погоди</label>
-          <input type="text" id="desc-input" name="description" placeholder="Сонячно, Дощ, Сніг тощо">
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary">Додати до прогнозу</button>
-        </div>
-      </form>
-    </section>
-  </main>
+  <!-- Спільний SPA-контейнер для динамічного рендерингу маршрутів -->
+  <main id="app"></main>
 
   <footer>
     <p>Дані надані навчальним сервісом погоди &copy; 2026</p>

@@ -430,3 +430,50 @@ footer {
   height: 60px;
   display: block;
 }
+
+/* SPA навігація та сторінки */
+.nav-link.active {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.card--detail {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.card--detail .detail-actions {
+  margin-top: 20px;
+}
+
+.not-found-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 16px;
+}
+
+.not-found-section h2 {
+  font-size: 2.2rem;
+  margin: 0 0 16px 0;
+}
+
+.not-found-section .desc {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin: 0 0 24px 0;
+}
+
+.not-found-section .btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.card--city .city-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
