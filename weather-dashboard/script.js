@@ -2,6 +2,18 @@
 const BASE_API_URL = 'https://api.open-meteo.com/v1/forecast';
 const LOCAL_API_URL = '/api/cities';
 
+// Функція санітизації/екранування спеціальних символів HTML для захисту від XSS (Lab 15)
+function escapeHtml(str) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return String(str ?? '').replace(/[&<>"']/g, ch => map[ch]);
+}
+
 // Резервні дані на випадок недоступності мережі
 const fallbackCities = [
   { id: 'kyiv', name: 'Київ', lat: 50.45, lon: 30.52, temperature: 21, weatherCode: 0, time: '2026-10-01T12:00' },
@@ -20,7 +32,7 @@ const WEATHER_CODES = {
   51: { desc: 'Легка мряка', icon: '🌦️' },
   53: { desc: 'Помірна мряка', icon: '🌦️' },
   55: { desc: 'Густа мряка', icon: '🌧️' },
-  61: { desc: 'Слабкий дощ', icon: '🌧️' },
+  61: { desc: 'Слабкий дощ', icon: '🌧️️' },
   63: { desc: 'Помірний дощ', icon: '🌧️' },
   65: { desc: 'Сильний дощ', icon: '🌧️' },
   71: { desc: 'Слабкий снігопад', icon: '🌨️' },
@@ -45,7 +57,7 @@ function resolveWeatherIcon(description, tempC) {
   if (desc.includes('хмар')) return '⛅';
   if (tempC >= 24) return '🔥';
   if (tempC < 0) return '❄️';
-  return '🌤️️';
+  return '🌤️';
 }
 
 // ========================================================
@@ -114,7 +126,6 @@ async function deleteCity(id) {
   });
 }
 
-// Завантаження міст із локального сервера Node.js через fetch (Крок 9)
 async function fetchCitiesFromLocalServer() {
   try {
     const response = await fetch(LOCAL_API_URL);
@@ -129,12 +140,11 @@ async function fetchCitiesFromLocalServer() {
       time: null
     }));
   } catch (error) {
-    console.warn('Локальний API недоступний, завантажуємо резервні дані:', error);
+    console.warn('Локальний API недоступний, використовуємо резервні дані:', error);
     return fallbackCities;
   }
 }
 
-// Ініціалізація міст у IndexedDB
 async function initStorage() {
   const isMigrated = localStorage.getItem('cities_migrated_v14');
   if (isMigrated) return;
@@ -269,7 +279,7 @@ function stopWeatherAnimation() {
 }
 
 // ========================================================
-// Vue 3: WeatherCard компонент
+// Vue 3: WeatherCard компонент (безпечний завдяки шаблонізатору Vue)
 // ========================================================
 
 const WeatherCard = {
@@ -323,7 +333,7 @@ let defaultForecast = [
 ];
 
 // ========================================================
-// SPA Views та роутер
+// SPA Views (з обов'язковою санітизацією даних у innerHTML)
 // ========================================================
 
 const app = document.querySelector('#app');
@@ -335,6 +345,7 @@ async function renderHomeView() {
     targetCity = fallbackCities[0];
   }
 
+  // Захищене вставлення targetCity.name через escapeHtml
   app.innerHTML = `
     <div class="top-row">
       <section id="current" class="current-weather">
@@ -350,7 +361,7 @@ async function renderHomeView() {
 
         <article class="card card--current">
           <div class="card-header">
-            <h3 id="current-city-name">${targetCity.name}</h3>
+            <h3 id="current-city-name">${escapeHtml(targetCity.name)}</h3>
             <canvas id="weather-canvas" width="80" height="80" aria-label="Анімована іконка"></canvas>
           </div>
           <span class="temp temp--warm" id="current-temp">+--°C</span>
@@ -451,6 +462,7 @@ async function renderHomeView() {
       const timeEl = document.querySelector('#current-time');
       const advEl = document.querySelector('#advice .desc');
 
+      // Безпечне оновлення текстових вузлів через textContent
       if (tempEl) {
         tempEl.textContent = `${sign}${tempVal}°C`;
         tempEl.className = `temp ${tempVal >= 19 ? 'temp--warm' : 'temp--cool'}`;
@@ -478,7 +490,7 @@ async function renderHomeView() {
     } finally {
       if (refreshBtn) {
         refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Оновлення';
+        refreshBtn.textContent = 'Оновити';
       }
     }
   }
@@ -529,6 +541,7 @@ async function renderHomeView() {
   });
 }
 
+// Маршрут «/cities» — захищене формування карток (Крок 3, 5)
 async function renderCitiesView() {
   stopWeatherAnimation();
   const cities = await getAllCities();
@@ -543,18 +556,20 @@ async function renderCitiesView() {
         ${cities.map(city => {
           const codeInfo = WEATHER_CODES[city.weatherCode] || { desc: 'Невідомо', icon: '🌤️' };
           const tempText = city.temperature !== null ? `${city.temperature > 0 ? '+' : ''}${city.temperature}°C` : '...';
+          const safeId = encodeURIComponent(city.id);
+
           return `
-            <article class="card card--city" data-id="${city.id}">
+            <article class="card card--city" data-id="${safeId}">
               <div class="card-header">
-                <h3>${city.name}</h3>
+                <h3>${escapeHtml(city.name)}</h3>
                 <span class="weather-icon">${codeInfo.icon}</span>
               </div>
-              <p class="city-coords">${city.lat.toFixed(2)}°,${city.lon.toFixed(2)}°</p>
+              <p class="city-coords">${Number(city.lat).toFixed(2)}°,${Number(city.lon).toFixed(2)}°</p>
               <span class="temp ${city.temperature >= 19 ? 'temp--warm' : 'temp--cool'}">${tempText}</span>
               <p class="desc">${codeInfo.desc}</p>
               <div class="city-card-actions">
-                <a href="#/cities/${city.id}" data-link class="btn btn--secondary">Детальніше</a>
-                <button type="button" class="btn btn--danger delete-city-btn" data-id="${city.id}">Видалити</button>
+                <a href="#/cities/${safeId}" data-link class="btn btn--secondary">Детальніше</a>
+                <button type="button" class="btn btn--danger delete-city-btn" data-id="${safeId}">Видалити</button>
               </div>
             </article>
           `;
@@ -599,12 +614,14 @@ async function renderCitiesView() {
     const lon = Number(document.querySelector('#city-lon-input').value);
     if (!name || isNaN(lat) || isNaN(lon)) return;
 
-    const id = name.toLowerCase().replace(/\s+/g, '-');
+    // Створюємо валідний ідентифікатор без небезпечних символів
+    const id = name.toLowerCase().replace(/[^a-z0-9а-яіїєґ]/gi, '-');
     await saveCity({ id, name, lat, lon, temperature: null, weatherCode: null, time: null });
     renderCitiesView();
   });
 }
 
+// Маршрут «/cities/:id» — захищене формування сторінки деталей
 async function renderCityDetailView(params) {
   stopWeatherAnimation();
   const city = await getCityById(params.id);
@@ -613,7 +630,7 @@ async function renderCityDetailView(params) {
     app.innerHTML = `
       <section class="not-found-section">
         <h2>Місто не знайдено</h2>
-        <p class="desc">Місто з ідентифікатором «${params.id}» відсутнє в базі даних.</p>
+        <p class="desc">Місто з ідентифікатором «${escapeHtml(params.id)}» відсутнє в базі даних.</p>
         <a href="#/cities" data-link class="btn btn--primary">До списку міст</a>
       </section>
     `;
@@ -626,10 +643,10 @@ async function renderCityDetailView(params) {
     <section class="city-detail-section">
       <article class="card card--detail">
         <div class="card-header">
-          <h2>${city.name}</h2>
+          <h2>${escapeHtml(city.name)}</h2>
           <canvas id="detail-weather-canvas" width="80" height="80"></canvas>
         </div>
-        <p class="city-coords">Координати: ${city.lat.toFixed(4)}° пн. ш., ${city.lon.toFixed(4)}° сх. д.</p>
+        <p class="city-coords">Координати: ${Number(city.lat).toFixed(4)}° пн. ш., ${Number(city.lon).toFixed(4)}° сх. д.</p>
         <span class="temp temp--warm" id="detail-temp">Завантаження...</span>
         <p class="desc" id="detail-desc">Отримання свіжих метеоданих...</p>
         <time class="weather-time" id="detail-time"></time>
