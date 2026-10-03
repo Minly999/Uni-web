@@ -1,5 +1,13 @@
-// Базовий URL сервісу Open-Meteo
+// Базовий URL сервісу Open-Meteo та локального сервера
 const BASE_API_URL = 'https://api.open-meteo.com/v1/forecast';
+const LOCAL_API_URL = '/api/cities';
+
+// Резервні дані на випадок недоступності мережі
+const fallbackCities = [
+  { id: 'kyiv', name: 'Київ', lat: 50.45, lon: 30.52, temperature: 21, weatherCode: 0, time: '2026-10-01T12:00' },
+  { id: 'lviv', name: 'Львів', lat: 49.84, lon: 24.03, temperature: 18, weatherCode: 2, time: '2026-10-01T12:00' },
+  { id: 'odesa', name: 'Одеса', lat: 46.48, lon: 30.73, temperature: 23, weatherCode: 1, time: '2026-10-01T12:00' }
+];
 
 // Словник інтерпретації кодів WMO
 const WEATHER_CODES = {
@@ -37,7 +45,7 @@ function resolveWeatherIcon(description, tempC) {
   if (desc.includes('хмар')) return '⛅';
   if (tempC >= 24) return '🔥';
   if (tempC < 0) return '❄️';
-  return '🌤️';
+  return '🌤️️';
 }
 
 // ========================================================
@@ -47,12 +55,6 @@ function resolveWeatherIcon(description, tempC) {
 const DB_NAME = 'WeatherDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'cities';
-
-const initialCities = [
-  { id: 'kyiv', name: 'Київ', lat: 50.45, lon: 30.52, temperature: 21, weatherCode: 0, time: '2026-10-01T12:00' },
-  { id: 'lviv', name: 'Львів', lat: 49.84, lon: 24.03, temperature: 18, weatherCode: 2, time: '2026-10-01T12:00' },
-  { id: 'odesa', name: 'Одеса', lat: 46.48, lon: 30.73, temperature: 23, weatherCode: 1, time: '2026-10-01T12:00' }
-];
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -112,17 +114,39 @@ async function deleteCity(id) {
   });
 }
 
+// Завантаження міст із локального сервера Node.js через fetch (Крок 9)
+async function fetchCitiesFromLocalServer() {
+  try {
+    const response = await fetch(LOCAL_API_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP статус: ${response.status}`);
+    }
+    const serverCities = await response.json();
+    return serverCities.map(c => ({
+      ...c,
+      temperature: null,
+      weatherCode: null,
+      time: null
+    }));
+  } catch (error) {
+    console.warn('Локальний API недоступний, завантажуємо резервні дані:', error);
+    return fallbackCities;
+  }
+}
+
+// Ініціалізація міст у IndexedDB
 async function initStorage() {
-  const isMigrated = localStorage.getItem('cities_migrated');
+  const isMigrated = localStorage.getItem('cities_migrated_v14');
   if (isMigrated) return;
 
   const dbCities = await getAllCities();
   if (dbCities.length === 0) {
-    for (const city of initialCities) {
+    const citiesToSave = await fetchCitiesFromLocalServer();
+    for (const city of citiesToSave) {
       await saveCity(city);
     }
   }
-  localStorage.setItem('cities_migrated', 'true');
+  localStorage.setItem('cities_migrated_v14', 'true');
 }
 
 // ========================================================
@@ -169,7 +193,6 @@ function renderCanvasFrame(ctx, canvas) {
   const code = currentWeatherCode;
 
   if (code === 0 || code === 1) {
-    // Сонце
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     ctx.save();
@@ -192,7 +215,6 @@ function renderCanvasFrame(ctx, canvas) {
     ctx.restore();
     sunAngle += 0.015;
   } else if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82) || code >= 95) {
-    // Дощ
     drawCloudShape(ctx, 18, 30, '#64748b');
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 2;
@@ -205,7 +227,6 @@ function renderCanvasFrame(ctx, canvas) {
       if (drop.y > canvas.height) drop.y = 35;
     });
   } else if ((code >= 71 && code <= 77) || code === 85 || code === 86) {
-    // Сніг
     drawCloudShape(ctx, 18, 30, '#94a3b8');
     ctx.fillStyle = '#e2e8f0';
     snowFlakes.forEach(flake => {
@@ -216,7 +237,6 @@ function renderCanvasFrame(ctx, canvas) {
       if (flake.y > canvas.height) flake.y = 35;
     });
   } else {
-    // Хмарно
     cloudFloatOffset += 0.03 * cloudFloatDirection;
     if (Math.abs(cloudFloatOffset) > 2) cloudFloatDirection *= -1;
     drawCloudShape(ctx, 16, 42 + cloudFloatOffset, '#94a3b8');
@@ -249,7 +269,7 @@ function stopWeatherAnimation() {
 }
 
 // ========================================================
-// Vue 3: WeatherCard компонент для прогнозу
+// Vue 3: WeatherCard компонент
 // ========================================================
 
 const WeatherCard = {
@@ -303,17 +323,16 @@ let defaultForecast = [
 ];
 
 // ========================================================
-// Таблиця маршрутів та SPA Views (Кроки 3-5, 8, 9)
+// SPA Views та роутер
 // ========================================================
 
 const app = document.querySelector('#app');
 
-// Маршрут 1: «/» — поточний прогноз для останнього обраного міста
 async function renderHomeView() {
   const lastCityId = localStorage.getItem('last_selected_city') || 'kyiv';
   let targetCity = await getCityById(lastCityId);
   if (!targetCity) {
-    targetCity = initialCities[0];
+    targetCity = fallbackCities[0];
   }
 
   app.innerHTML = `
@@ -394,7 +413,6 @@ async function renderHomeView() {
     </section>
   `;
 
-  // Ініціалізація Canvas
   startWeatherAnimation('#weather-canvas');
 
   const toggleAnimBtn = document.querySelector('#toggle-anim-btn');
@@ -408,7 +426,6 @@ async function renderHomeView() {
     }
   });
 
-  // Функція оновлення погоди через API
   async function fetchCurrentData() {
     const refreshBtn = document.querySelector('#refresh-weather-btn');
     const errBox = document.querySelector('#weather-error');
@@ -446,7 +463,6 @@ async function renderHomeView() {
           : `Сьогодні ${codeInfo.desc.toLowerCase()} (${sign}${tempVal}°C). Демісезонний одяг.`;
       }
 
-      // Збереження оновленого прогнозу в IndexedDB
       await saveCity({
         ...targetCity,
         temperature: tempVal,
@@ -462,7 +478,7 @@ async function renderHomeView() {
     } finally {
       if (refreshBtn) {
         refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Оновити';
+        refreshBtn.textContent = 'Оновлення';
       }
     }
   }
@@ -471,7 +487,6 @@ async function renderHomeView() {
   if (refreshBtn) refreshBtn.addEventListener('click', fetchCurrentData);
   fetchCurrentData();
 
-  // Монтування Vue-компонента для секції 7-денного прогнозу
   const forecastApp = Vue.createApp({
     components: { WeatherCard },
     data() {
@@ -496,7 +511,6 @@ async function renderHomeView() {
     }
   }).mount('#forecast');
 
-  // Форма додавання дня до прогнозу
   const form = document.querySelector('#weather-form');
   form.addEventListener('submit', e => {
     e.preventDefault();
@@ -515,7 +529,6 @@ async function renderHomeView() {
   });
 }
 
-// Маршрут 2: «/cities» — список збережених міст з IndexedDB
 async function renderCitiesView() {
   stopWeatherAnimation();
   const cities = await getAllCities();
@@ -553,15 +566,15 @@ async function renderCitiesView() {
         <form id="city-form" class="weather-form" novalidate>
           <div class="form-group">
             <label for="city-name-input">Назва міста</label>
-            <input type="text" id="city-name-input" required placeholder="Наприклад, Харків">
+            <input type="text" id="city-name-input" required placeholder="Наприклад, Вінниця">
           </div>
           <div class="form-group">
             <label for="city-lat-input">Широта (Latitude)</label>
-            <input type="number" id="city-lat-input" step="0.0001" min="-90" max="90" required placeholder="49.99">
+            <input type="number" id="city-lat-input" step="0.0001" min="-90" max="90" required placeholder="49.2331">
           </div>
           <div class="form-group">
             <label for="city-lon-input">Довгота (Longitude)</label>
-            <input type="number" id="city-lon-input" step="0.0001" min="-180" max="180" required placeholder="36.23">
+            <input type="number" id="city-lon-input" step="0.0001" min="-180" max="180" required placeholder="28.4682">
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn--primary">Зберегти місто</button>
@@ -571,7 +584,6 @@ async function renderCitiesView() {
     </section>
   `;
 
-  // Видалення міста
   document.querySelectorAll('.delete-city-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       await deleteCity(btn.dataset.id);
@@ -579,7 +591,6 @@ async function renderCitiesView() {
     });
   });
 
-  // Додавання міста через форму
   const cityForm = document.querySelector('#city-form');
   cityForm.addEventListener('submit', async e => {
     e.preventDefault();
@@ -594,7 +605,6 @@ async function renderCitiesView() {
   });
 }
 
-// Маршрут 3: «/cities/:id» — детальний прогноз для конкретного міста
 async function renderCityDetailView(params) {
   stopWeatherAnimation();
   const city = await getCityById(params.id);
@@ -610,7 +620,6 @@ async function renderCityDetailView(params) {
     return;
   }
 
-  // Зберігаємо останнє переглянуте місто для головного роута «/»
   localStorage.setItem('last_selected_city', city.id);
 
   app.innerHTML = `
@@ -670,7 +679,6 @@ async function renderCityDetailView(params) {
   }
 }
 
-// Маршрут 404: Сторінку не знайдено
 function renderNotFoundView() {
   stopWeatherAnimation();
   app.innerHTML = `
@@ -682,14 +690,12 @@ function renderNotFoundView() {
   `;
 }
 
-// Опис маршрутів застосунку (Крок 3)
 const routes = [
   { path: '/', view: renderHomeView },
   { path: '/cities', view: renderCitiesView },
   { path: '/cities/:id', view: renderCityDetailView }
 ];
 
-// Зіставлення шляху з шаблоном маршруту (Крок 4)
 function matchRoute(path) {
   const pathParts = path.split('/').filter(Boolean);
 
@@ -712,17 +718,14 @@ function matchRoute(path) {
   return null;
 }
 
-// Клієнтська навігація (Крок 6)
 function navigate(path) {
   location.hash = path;
 }
 
-// Головний роутер застосунку (Крок 5, 7)
 async function router() {
   const hash = location.hash.slice(1);
   const path = hash || '/';
 
-  // Оновлюємо візуальний активний клас посилань
   document.querySelectorAll('nav a').forEach(a => {
     const href = a.getAttribute('href');
     const routeTarget = href.startsWith('#') ? href.slice(1) : href;
@@ -738,7 +741,6 @@ async function router() {
   }
 }
 
-// Перехоплення кліків на клієнтських посиланнях (Крок 6)
 document.addEventListener('click', event => {
   const link = event.target.closest('a[data-link]');
   if (!link) return;
@@ -749,7 +751,6 @@ document.addEventListener('click', event => {
   navigate(targetPath);
 });
 
-// Слухачі подій зміни хешу та початкового завантаження (Крок 7)
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', async () => {
   await initStorage();
